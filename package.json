@@ -1,0 +1,26 @@
+{
+  "name": "y",
+  "version": "1.0.0",
+  "description": "CS361 Wikipedia Text Scraper by Allen Chen",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AllenChenRR/CS361-TextScraper.git"
+  },
+  "author": "Allen Chen",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AllenChenRR/CS361-TextScraper/issues"
+  },
+  "homepage": "https://github.com/AllenChenRR/CS361-TextScraper#readme",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "cheerio": "^1.0.0-rc.9",
+    "express": "^4.17.1",
+    "fs": "0.0.1-security"
+  }
+}
