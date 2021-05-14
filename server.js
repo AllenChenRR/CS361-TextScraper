@@ -11,6 +11,26 @@ app.use(express.json());
 
 // app.use('/', require('./index'));
 
+const ignoredHeaders = ['Contents', 'References', 'External links', 'See also', 'Notes']
+
+
+function sleep(milliseconds) {
+  const date = Date.now();
+  let currentDate = null;
+  do {
+    currentDate = Date.now();
+  } while (currentDate - date < milliseconds);
+}
+
+function checkValidHeaders(header, ignoredHeaders) {
+  for (var i = 0; i < ignoredHeaders.length; i++) {
+    if (header == ignoredHeaders[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function removeFootnotes (text) {
   var skip = false;
   var newText = [];
@@ -45,10 +65,11 @@ function getWikiData (html) {
   const $ = cheerio.load(html);
   // Gets the introductory text
   var tempIntro = $(".mw-parser-output p").first();
-  console.log(typeof tempIntro.text())
   var introContent = ""
-  while ($(tempIntro).prop("tagName") == "P") {
-    introContent += $(tempIntro).text()
+  while ($(tempIntro).prop("tagName") != "H2") {
+    if ($(tempIntro).prop("tagName") == "P") {
+      introContent += $(tempIntro).text()
+    }
     tempIntro = $(tempIntro).next();
   }
 
@@ -60,29 +81,38 @@ function getWikiData (html) {
   )
 
   $(".mw-parser-output h2").each((i, elem) => {
+    const header = removeFootnotes($(elem).text());
+    if (checkValidHeaders(header, ignoredHeaders)) {
+      return;
+    }
+    //console.log($(elem).text())
     var group = {}
     group.header = $(elem).text();
     group.content = "";
     var tempElem = $(elem).next();
-    console.log(`${group.header} ${$(tempElem)} group ${JSON.stringify(group)}`)
+    //console.log(`${group.header} ${$(tempElem)} group ${JSON.stringify(group)}`)
     // Loops through all <p> elements following the header until another header is reached
-    // if ($(tempElem).length !== 0) {
-    //   while ($(tempElem).prop("tagName") != "H2") {
-    //     if ($(tempElem).prop("tagName") == "P") {
-    //       group.content += $(tempElem).text();
-    //     }
-    //     tempElem = $(tempElem).next()
-    //   }
-
     if ($(tempElem).length !== 0) {
-      while ($(tempElem).prop("tagName") == "P") {
-        group.content += $(tempElem).text();
+      while ($(tempElem).prop("tagName") != "H2") {
+        if ($(tempElem).prop("tagName") == "P") {
+          group.content += $(tempElem).text();
+        }
         tempElem = $(tempElem).next()
       }
       group.header = removeExtraChars(group.header);
       group.content = removeExtraChars(group.content);
       data.push(group)
     }
+
+    // if ($(tempElem).length !== 0) {
+    //   while ($(tempElem).prop("tagName") == "P") {
+    //     group.content += $(tempElem).text();
+    //     tempElem = $(tempElem).next()
+    //   }
+    //   group.header = removeExtraChars(group.header);
+    //   group.content = removeExtraChars(group.content);
+    //   data.push(group)
+    // }
   })
   var scrapedResult = {
     data: data
@@ -97,7 +127,6 @@ app.get('/', (req, res) => {
 
 app.get('/data', (req, res) => {
   const url = req.query.url;
-  console.log(typeof url)
   axios.get(url)
     .then(response => {
       // fs.writeFile('responseData.html', response.data, (err) => {
