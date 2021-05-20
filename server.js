@@ -4,6 +4,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const { data } = require('cheerio/lib/api/attributes');
 const { remove } = require('cheerio/lib/api/manipulation');
+const e = require('express');
 app = express();
 
 app.enable('trust proxy');
@@ -11,8 +12,8 @@ app.use(express.json());
 
 // app.use('/', require('./index'));
 
-const ignoredHeaders = ['Contents', 'References', 'External links', 'See also', 'Notes']
-
+const ignoredHeaders = ['Contents', 'References', 'External links', 'See also', 'Notes', 'Notes and references']
+const WIKIBOOK_URL = 'https://en.wikibooks.org'
 
 function sleep(milliseconds) {
   const date = Date.now();
@@ -59,6 +60,43 @@ function removeExtraChars(text) {
   var noFootnotes = removeFootnotes(text);
   return removeNewline(noFootnotes)
 }
+
+function removeParenthses(text) {
+  var newText = [];
+  for (var i  = 0; i < text.length; i++) {
+    if (text.charAt(i) != '(') {
+      newText.push(text.charAt(i));
+    } else {
+      newText.pop();
+      return newText.join('');
+    }
+  }
+  return newText.join('');
+}
+
+function getCuisinesList (html) {
+  const data = [];
+  const $ = cheerio.load(html)
+
+  var cuisineList = $(".mw-parser-output ul").first().children();
+  cuisineList.each((i, elem) => {
+    var cuisine = $(elem).text()
+    var linkUrl = $(elem).find("a").attr("href");
+    var entity = {
+      cuisine: removeParenthses(cuisine),
+      url: `${WIKIBOOK_URL}${linkUrl}`
+    }
+    data.push(entity);
+  })
+  return data;
+}
+
+
+
+
+
+
+
 
 function getWikiData (html) {
   const data = [];
@@ -117,7 +155,6 @@ function getWikiData (html) {
   var scrapedResult = {
     data: data
   }
-  console.log(scrapedResult)
   return scrapedResult;
 }
 
@@ -127,6 +164,7 @@ app.get('/', (req, res) => {
 
 app.get('/data', (req, res) => {
   const url = req.query.url;
+  const newLine = req.query.newline;
   axios.get(url)
     .then(response => {
       // fs.writeFile('responseData.html', response.data, (err) => {
@@ -143,8 +181,25 @@ app.get('/data', (req, res) => {
     })
     .catch(error => {
       console.log(error);
+      return res.status(404).json({Error: "Invalid URL"})
     })
   // res.status(200).send('It works').end();
+})
+
+app.get('/lists', async (req, res) => {
+  const type = req.query.type
+  const url = req.query.url;
+  var response = await axios.get(url)
+  // fs.writeFile('./listData.html', response.data, err => {
+  //   if (err) {
+  //     console.log(err);
+  //     return
+  //   }
+  // })
+  if (type == 'cuisines') {
+    var responseData = getCuisinesList(response.data);
+  }
+  res.status(200).json(responseData);
 })
 
 
