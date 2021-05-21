@@ -23,6 +23,10 @@ function sleep(milliseconds) {
   } while (currentDate - date < milliseconds);
 }
 
+function isDeadLink(url) {
+  return url.includes("redlink");
+}
+
 function checkValidHeaders(header, ignoredHeaders) {
   for (var i = 0; i < ignoredHeaders.length; i++) {
     if (header == ignoredHeaders[i]) {
@@ -91,12 +95,28 @@ function getCuisinesList (html) {
   return data;
 }
 
+function getCountriesList (html) {
+  const data = [];
+  const $ = cheerio.load(html);
 
+  regionList = $(".mw-parser-output ul");
+  regionList.each((i, region) => {
 
-
-
-
-
+    var countryList = $(region).children();
+    countryList.each((i, country) => {
+      var countryText = $(country).text();
+      var countryUrl = $(country).find("a").attr("href")
+      if (!isDeadLink(countryUrl)) {
+        var entity = {
+          cuisine: countryText,
+          url: `${WIKIBOOK_URL}${countryUrl}`
+        }
+        data.push(entity)
+      }
+    })
+  })
+  return data;
+}
 
 function getWikiData (html) {
   const data = [];
@@ -123,12 +143,12 @@ function getWikiData (html) {
     if (checkValidHeaders(header, ignoredHeaders)) {
       return;
     }
-    //console.log($(elem).text())
+
     var group = {}
     group.header = $(elem).text();
     group.content = "";
     var tempElem = $(elem).next();
-    //console.log(`${group.header} ${$(tempElem)} group ${JSON.stringify(group)}`)
+
     // Loops through all <p> elements following the header until another header is reached
     if ($(tempElem).length !== 0) {
       while ($(tempElem).prop("tagName") != "H2") {
@@ -141,16 +161,6 @@ function getWikiData (html) {
       group.content = removeExtraChars(group.content);
       data.push(group)
     }
-
-    // if ($(tempElem).length !== 0) {
-    //   while ($(tempElem).prop("tagName") == "P") {
-    //     group.content += $(tempElem).text();
-    //     tempElem = $(tempElem).next()
-    //   }
-    //   group.header = removeExtraChars(group.header);
-    //   group.content = removeExtraChars(group.content);
-    //   data.push(group)
-    // }
   })
   var scrapedResult = {
     data: data
@@ -199,6 +209,12 @@ app.get('/lists', async (req, res) => {
   if (type == 'cuisines') {
     var responseData = getCuisinesList(response.data);
   }
+
+  if (type == 'countries') {
+    var responseData = getCountriesList(response.data)
+  }
+  
+
   res.status(200).json(responseData);
 })
 
