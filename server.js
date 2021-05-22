@@ -238,21 +238,20 @@ app.get('/lists', async (req, res) => {
   }
 
   if (type == 'countries') {
-    var dishList = [];
+    var responseData = [];
     var countries = getCountriesList(response.data);
     //console.log(countries)
-    var responseData = countries
     // build a function that adds to a list, second argument will take the url
     // function will perform scraping on the get response from the url
     for (var i = 0; i < countries.length; i++) {
       var country = countries[i];
-      await addDishes(dishList, country.url)
+      await addDishes(responseData, country.url)
     }
     
   }
   //console.log(dishList)
 
-  res.status(200).json(dishList);
+  res.status(200).json(responseData);
 })
 
 
