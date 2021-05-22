@@ -71,7 +71,7 @@ function removeExtraChars(text) {
   return removeNewline(noFootnotes)
 }
 
-function removeParenthses(text) {
+function removeParentheses(text) {
   var newText = [];
   for (var i  = 0; i < text.length; i++) {
     if (text.charAt(i) != '(') {
@@ -93,7 +93,7 @@ function getCuisinesList (html) {
     var cuisine = $(elem).text()
     var linkUrl = $(elem).find("a").attr("href");
     var entity = {
-      cuisine: removeParenthses(cuisine),
+      cuisine: removeParentheses(cuisine),
       url: `${WIKIBOOK_URL}${linkUrl}`
     }
     data.push(entity);
@@ -114,7 +114,7 @@ function getCountriesList (html) {
       var countryUrl = $(country).find("a").attr("href")
       if (!isDeadLink(countryUrl)) {
         var entity = {
-          cuisine: countryText,
+          cuisine: removeParentheses(countryText),
           url: `${WIKIBOOK_URL}${countryUrl}`
         }
         data.push(entity)
@@ -183,7 +183,7 @@ async function getDishesFromHtml(dishList, html) {
       if (dishLink && !isDeadLink(dishLink) && isRecipeLink(dishLink)) {
         // console.log($(element).text())
         dishList.push({
-          dish: $(element).text(),
+          dish: removeParentheses($(element).text()),
           url: `${WIKIBOOK_URL}${dishLink}`
         })
       }
