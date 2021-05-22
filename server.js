@@ -27,6 +27,10 @@ function isDeadLink(url) {
   return url.includes("redlink");
 }
 
+function isRecipeLink(url) {
+  return url.includes("/wiki/Cookbook:")
+}
+
 function checkValidHeaders(header, ignoredHeaders) {
   for (var i = 0; i < ignoredHeaders.length; i++) {
     if (header == ignoredHeaders[i]) {
@@ -130,7 +134,7 @@ function getWikiData (html) {
     }
     tempIntro = $(tempIntro).next();
   }
-
+  // Push the introductory text object into the data array
   data.push(
     {
       header: "Intro",
@@ -140,10 +144,10 @@ function getWikiData (html) {
 
   $(".mw-parser-output h2").each((i, elem) => {
     const header = removeFootnotes($(elem).text());
+    // Skips grabbing text for invalid headers
     if (checkValidHeaders(header, ignoredHeaders)) {
       return;
     }
-
     var group = {}
     group.header = $(elem).text();
     group.content = "";
@@ -168,6 +172,39 @@ function getWikiData (html) {
   return scrapedResult;
 }
 
+async function getDishesFromHtml(dishList, html) {
+  const $ = cheerio.load(html);
+  var dishItems = $(".mw-parser-output li")
+  dishItems.each((i, element) => {
+    if ($(element).has("a")) {
+      var dishLink = $(element).find("a").attr("href");
+      if (dishLink && !isDeadLink(dishLink) && isRecipeLink(dishLink)) {
+        // console.log($(element).text())
+        dishList.push({
+          dish: $(element).text(),
+          url: `${WIKIBOOK_URL}${dishLink}`
+        })
+      }
+    }
+    // return dishList
+    // console.log(i)
+    // console.log($(element).text())
+  })
+}
+
+// Adds the list of dishes in the url to dish list
+async function addDishes(dishList, url) {
+  // dish list will contain a list of objects with name of the dish and the link
+  var response = await axios.get(url);
+  await getDishesFromHtml(dishList, response.data)
+  // console.log(`add dishes`)
+  // console.log(dishList)
+
+}
+
+
+//<-----------------------------------Routes----------------------------------------->
+
 app.get('/', (req, res) => {
   res.status(200).send("CS361 Text Scraper by Allen Chen")
 })
@@ -177,17 +214,7 @@ app.get('/data', (req, res) => {
   const newLine = req.query.newline;
   axios.get(url)
     .then(response => {
-      // fs.writeFile('responseData.html', response.data, (err) => {
-      //   if (err) throw err;
-      // });
-      // let getData = html => {
-      //   data = [];
-      //   const $ = cheerio.load(html);
-      //   console.log($)
-      // }
       return res.status(200).json(getWikiData(response.data));
-      // const $ = cheerio.load(response.data);
-      // console.log($.html())
     })
     .catch(error => {
       console.log(error);
@@ -211,11 +238,21 @@ app.get('/lists', async (req, res) => {
   }
 
   if (type == 'countries') {
-    var responseData = getCountriesList(response.data)
+    var dishList = [];
+    var countries = getCountriesList(response.data);
+    //console.log(countries)
+    var responseData = countries
+    // build a function that adds to a list, second argument will take the url
+    // function will perform scraping on the get response from the url
+    for (var i = 0; i < countries.length; i++) {
+      var country = countries[i];
+      await addDishes(dishList, country.url)
+    }
+    
   }
-  
+  //console.log(dishList)
 
-  res.status(200).json(responseData);
+  res.status(200).json(dishList);
 })
 
 
