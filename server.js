@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const cors = require('cors')
 const fs = require('fs');
 const { data } = require('cheerio/lib/api/attributes');
 const { remove } = require('cheerio/lib/api/manipulation');
@@ -9,6 +10,7 @@ app = express();
 
 app.enable('trust proxy');
 app.use(express.json());
+app.use(cors())
 
 // app.use('/', require('./index'));
 
