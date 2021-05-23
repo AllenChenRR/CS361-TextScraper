@@ -201,7 +201,6 @@ async function addDishes(dishList, url) {
 }
 
 
-
 async function getRecipeInfo(url) {
   const data = {
     ingredients: [],
@@ -221,7 +220,22 @@ async function getRecipeInfo(url) {
   })
 
   return data
+}
 
+async function getRecipeList(url) {
+  var data = []
+  var response = await axios.get(url);
+  const $ = cheerio.load(response.data)
+  var recipes = $(".mw-parser-output li");
+  recipes.each((i, elem) => {
+    var recipeName = $(elem).text();
+    var recipeUrl = $(elem).find("a").attr("href")
+    data.push({
+      recipe: removeParentheses(recipeName),
+      url: `${WIKIBOOK_URL}${recipeUrl}`
+    })
+  })
+  return data;
 }
 
 
@@ -269,8 +283,12 @@ app.get('/lists', async (req, res) => {
     } 
   }
 
-  if (type == 'recipe') {
+  if (type == 'dish') {
     var responseData = await getRecipeInfo(url)
+  }
+
+  if (type == 'recipes') {
+    var responseData = await getRecipeList(url)
   }
 
   res.status(200).json(responseData);
