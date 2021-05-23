@@ -188,9 +188,6 @@ async function getDishesFromHtml(dishList, html) {
         })
       }
     }
-    // return dishList
-    // console.log(i)
-    // console.log($(element).text())
   })
 }
 
@@ -201,6 +198,29 @@ async function addDishes(dishList, url) {
   await getDishesFromHtml(dishList, response.data)
   // console.log(`add dishes`)
   // console.log(dishList)
+}
+
+
+
+async function getRecipeInfo(url) {
+  const data = {
+    ingredients: [],
+    procedures: []
+  };
+  var response = await axios.get(url);
+  const $ = cheerio.load(response.data);
+  var ingredients = $(".mw-parser-output ul").first().children();
+  var procedures = $(".mw-parser-output ol").first().children();
+
+  ingredients.each((i, elem) => {
+    data.ingredients.push($(elem).text())
+  })
+
+  procedures.each((i, elem) => {
+    data.procedures.push($(elem).text())
+  })
+
+  return data
 
 }
 
@@ -242,16 +262,16 @@ app.get('/lists', async (req, res) => {
   if (type == 'countries') {
     var responseData = [];
     var countries = getCountriesList(response.data);
-    //console.log(countries)
-    // build a function that adds to a list, second argument will take the url
-    // function will perform scraping on the get response from the url
+
     for (var i = 0; i < countries.length; i++) {
       var country = countries[i];
       await addDishes(responseData, country.url)
-    }
-    
+    } 
   }
-  //console.log(dishList)
+
+  if (type == 'recipe') {
+    var responseData = await getRecipeInfo(url)
+  }
 
   res.status(200).json(responseData);
 })
